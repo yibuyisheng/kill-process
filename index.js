@@ -44,6 +44,10 @@ function getProcessByPort(port) {
                     pid && pids.push(parseInt(pid));
                 }
 
+                var pids = utils.arrayHelper.distinctArray(pids, function (pid) {
+                    return pid;
+                });
+
                 resolve(pids);
             }
         });
