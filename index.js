@@ -16,7 +16,14 @@ module.exports = function (port) {
 // 根据 pid 杀死进程
 function killProcesses(pids) {
     utils.arrayHelper.forEach(pids, function (pid) {
-        exec('kill -9 ' + pid, function (error, stdout, stderr) {
+        var cmd;
+        if (process.platform === 'win32') {
+            cmd = 'taskkill /pid ' + pid + ' /f';
+        } else {
+            cmd = 'kill -9 ' + pid;
+        }
+
+        exec(cmd, function (error, stdout, stderr) {
             if (error || stderr) {
                 console.log(error || stderr);
             } else {
@@ -30,8 +37,19 @@ function killProcesses(pids) {
  */
 function getProcessByPort(port) {
     return new Promise(function (resolve, reject) {
-        exec('lsof -i:' + port, function (error, stdout, stderr) {
+
+        var cmd;
+        if (process.platform === 'win32') {
+            cmd = 'netstat -ano|findstr ' + port;
+        } else {
+            cmd = 'lsof -i:' + port;
+        }
+
+        exec(cmd, function (error, stdout, stderr) {
             if (error || stderr) {
+                if (process.platform === 'win32' && error && error.code === 1) {
+                    return resolve([]);
+                }
                 reject(error || new Error(stderr));
             } else {
                 if (!utils.base.isString(stdout)) {
@@ -40,7 +58,9 @@ function getProcessByPort(port) {
 
                 var stdoutLines = stdout.split(/\n/g), pids = [];
                 for (var i = 1, il = stdoutLines.length; i < il; i++) {
-                    var pid = stdoutLines[i].split(/\s/g)[2];
+                    var pid = process.platform === 'win32'
+                        ? (function (str) {return str ? str.slice(str.lastIndexOf(':') + 1) : '';})(stdoutLines[i].split(/\s+/)[2])
+                        : stdoutLines[i].split(/\s+/)[1];
                     pid && pids.push(parseInt(pid));
                 }
 
