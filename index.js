@@ -5,7 +5,7 @@ var Promise = require('promise');
 var utils = require('utilities');
 
 
-module.exports = function (port) {
+module.exports = function(port) {
     return getProcessByPort(port)
         .then(function (pids) {
             return killProcesses(pids);
